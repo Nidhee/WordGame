@@ -5,12 +5,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import android.widget.TextView;
 
+import com.example.wordgame.data.ScoreData;
+
 import java.util.ArrayList;
 
 public class ResultActivity extends AppCompatActivity {
 
     TextView lblScore,lblDetails;
-    ArrayList<Result> results;
+    ArrayList<ScoreData> scoreData;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -20,12 +22,14 @@ public class ResultActivity extends AppCompatActivity {
         lblDetails = findViewById(R.id.lbldetails);
 
         Toolbar mActionBarToolbar = findViewById(R.id.toolbarResult);
-        mActionBarToolbar.setTitle("Results");
+        mActionBarToolbar.setTitle(getString(R.string.str_result));
         mActionBarToolbar.setTitleTextColor(getResources().getColor(android.R.color.white));
         setSupportActionBar(mActionBarToolbar);
 
         Bundle bundle = getIntent().getExtras();
-        results = bundle.getParcelableArrayList("ARG_RESULT");
+        if (bundle != null) {
+            scoreData = bundle.getParcelableArrayList("ARG_RESULT");
+        }
         calculateResult();
     }
     private void calculateResult(){
@@ -33,8 +37,8 @@ public class ResultActivity extends AppCompatActivity {
         int totalSkipped = 0;
         int totalWrong = 0;
         int totalTimedOut = 0;
-        for(Result result : results){
-            switch(result.resultState){
+        for(ScoreData scoreData : this.scoreData){
+            switch(scoreData.resultState){
                 case RIGHT:
                     totalScore++;
                     break;
@@ -49,7 +53,7 @@ public class ResultActivity extends AppCompatActivity {
                     break;
             }
         }
-        String score = "SCORE - " + totalScore +" / " + results.size();
+        String score = "SCORE - " + totalScore +" / " + scoreData.size();
         String details = "Skipped - " + totalSkipped + "\n" +
         "Timed out - " + totalTimedOut + "\n" +
                 "Wrong - " + totalWrong + "\n";

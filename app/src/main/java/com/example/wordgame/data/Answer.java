@@ -1,17 +1,17 @@
-package com.example.wordgame;
+package com.example.wordgame.data;
 
-class AnswerState {
-    ButtonState buttonState;
-    String letter;
-    int index;
+public class Answer {
+    public ButtonState buttonState;
+    public String letter;
+    public int index;
 
-    AnswerState() {
+    public Answer() {
         buttonState = ButtonState.UNSELECTED;
         letter = "";
         index = -1;
     }
 
-    AnswerState reset() {
+    Answer reset() {
         buttonState = ButtonState.UNSELECTED;
         letter = "";
         index = -1;
@@ -19,7 +19,3 @@ class AnswerState {
     }
 }
 
-enum ButtonState {
-    SELECTED,
-    UNSELECTED
-}

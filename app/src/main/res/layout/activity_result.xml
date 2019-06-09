@@ -20,7 +20,8 @@
         android:layout_height="wrap_content"
         android:layout_margin="24dp"
         android:textSize="36sp"
-        android:textStyle="bold"/>
+        android:textStyle="bold"
+        android:textColor="@color/colorPrimary"/>
 
     <TextView
         android:id="@+id/lbldetails"

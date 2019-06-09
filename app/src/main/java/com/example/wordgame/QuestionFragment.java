@@ -2,18 +2,24 @@ package com.example.wordgame;
 
 import android.content.Context;
 import android.os.Bundle;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+
 import com.airbnb.lottie.LottieAnimationView;
+import com.example.wordgame.data.Answer;
+import com.example.wordgame.data.ButtonState;
+import com.example.wordgame.data.ScoreData;
+import com.example.wordgame.data.ResultState;
 
 import java.util.ArrayList;
 import java.util.Locale;
@@ -28,27 +34,123 @@ import rx.schedulers.Schedulers;
 
 public class QuestionFragment extends Fragment {
 
-    private static final String ARG_RESULT = "result";
+    private static final String ARG_RESULT = "scoreData";
 
     private TextView lblCountDownTimer, lblanswer1, lblanswer2, lblanswer3, lblanswer4,
             lblIndex1, lblIndex2, lblIndex3, lblIndex4, lblQuestionNo;
 
-    private Button btnSuggestion1, btnSuggestion2, btnSuggestion3, btnSuggestion4, btnNext;
-    private  LottieAnimationView viewRight,viewWrong;
+    private Button btnSuggestion1, btnSuggestion2, btnSuggestion3, btnSuggestion4, btnNext, btnSkip;
+    private LottieAnimationView viewRight, viewWrong;
     private int characterPosition;
     private ArrayList<TextView> textViewArrayList;
     private ArrayList<Button> buttonArrayList;
 
     private OnFragmentInteractionListener mListener;
 
-    private Result result;
+    private ScoreData scoreData;
+    private Subscription subscription;
+    private View.OnClickListener onCharacterButtonClickListner = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            Answer answer;
+            switch (v.getId()) {
+                case R.id.btn1:
+                    answer = (Answer) v.getTag();
+                    if (answer.buttonState == ButtonState.UNSELECTED) {
+                        v.setBackground(getResources().getDrawable(R.drawable.ic_rounded_rectangle_select));
+                        answer.buttonState = ButtonState.SELECTED;
+                        answer.letter = ((Button) v).getText().toString();
+                        answer.index = ++characterPosition;
+                        v.setTag(answer);
+                        textViewArrayList.get(characterPosition).setText(answer.letter);
+                        buttonArrayList.add((Button) v);
+                        lblIndex1.setText(String.valueOf(answer.index + 1));
+                    }
+
+                    break;
+                case R.id.btn2:
+                    answer = (Answer) v.getTag();
+                    if (answer.buttonState == ButtonState.UNSELECTED) {
+                        v.setBackground(getResources().getDrawable(R.drawable.ic_rounded_rectangle_select));
+                        answer.buttonState = ButtonState.SELECTED;
+                        answer.letter = ((Button) v).getText().toString();
+                        answer.index = ++characterPosition;
+                        v.setTag(answer);
+                        textViewArrayList.get(characterPosition).setText(answer.letter);
+                        buttonArrayList.add((Button) v);
+                        lblIndex2.setText(String.valueOf(answer.index + 1));
+                    }
+
+                    break;
+                case R.id.btn3:
+                    answer = (Answer) v.getTag();
+                    if (answer.buttonState == ButtonState.UNSELECTED) {
+                        v.setBackground(getResources().getDrawable(R.drawable.ic_rounded_rectangle_select));
+                        answer.buttonState = ButtonState.SELECTED;
+                        answer.letter = ((Button) v).getText().toString();
+                        answer.index = ++characterPosition;
+                        v.setTag(answer);
+                        textViewArrayList.get(characterPosition).setText(answer.letter);
+                        buttonArrayList.add((Button) v);
+                        lblIndex3.setText(String.valueOf(answer.index + 1));
+                    }
+
+                    break;
+                case R.id.btn4:
+                    answer = (Answer) v.getTag();
+                    if (answer.buttonState == ButtonState.UNSELECTED) {
+                        v.setBackground(getResources().getDrawable(R.drawable.ic_rounded_rectangle_select));
+                        answer.buttonState = ButtonState.SELECTED;
+                        answer.letter = ((Button) v).getText().toString();
+                        answer.index = ++characterPosition;
+                        v.setTag(answer);
+                        textViewArrayList.get(characterPosition).setText(answer.letter);
+                        buttonArrayList.add((Button) v);
+                        lblIndex4.setText(String.valueOf(answer.index + 1));
+                    }
+                    break;
+            }
+            evaluateResult();
+        }
+    };
+    private View.OnClickListener onBackSpaceButtonClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            if (characterPosition != -1) {
+                textViewArrayList.get(characterPosition).setText("");
+                Button btn = buttonArrayList.get(characterPosition);
+                btn.setBackground(getResources().getDrawable(R.drawable.ic_rounded_rectangle_unselected));
+                btn.setTag(new Answer());
+                buttonArrayList.remove(characterPosition);
+                characterPosition--;
+            }
+        }
+    };
+    private View.OnClickListener onNextButtonClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            if (mListener != null) {
+                mListener.onFragmentInteraction(scoreData);
+            }
+        }
+    };
+    private View.OnClickListener onSkipButtonClickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            if (mListener != null) {
+                if (subscription != null && !subscription.isUnsubscribed()) {
+                    subscription.unsubscribe();
+                }
+                scoreData.resultState = ResultState.SKIPPED;
+                mListener.onFragmentInteraction(scoreData);
+            }
+        }
+    };
 
     public QuestionFragment() {
     }
 
-    private Subscription subscription;
-
-    public static QuestionFragment newInstance(Result param1) {
+    static QuestionFragment newInstance(ScoreData param1) {
         QuestionFragment fragment = new QuestionFragment();
         Bundle args = new Bundle();
         args.putParcelable(ARG_RESULT, param1);
@@ -60,7 +162,7 @@ public class QuestionFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            result = getArguments().getParcelable(ARG_RESULT);
+            scoreData = getArguments().getParcelable(ARG_RESULT);
         }
         characterPosition = -1;
         textViewArrayList = new ArrayList<>();
@@ -79,6 +181,8 @@ public class QuestionFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         lblCountDownTimer = view.findViewById(R.id.lblCountDownTimer);
+        viewRight = view.findViewById(R.id.animation_view_right);
+        viewWrong = view.findViewById(R.id.animation_view_wrong);
 
         lblanswer1 = view.findViewById(R.id.lbl1);
         lblanswer2 = view.findViewById(R.id.lbl2);
@@ -103,10 +207,10 @@ public class QuestionFragment extends Fragment {
         btnSuggestion3 = view.findViewById(R.id.btn3);
         btnSuggestion4 = view.findViewById(R.id.btn4);
 
-        btnSuggestion1.setTag(new AnswerState());
-        btnSuggestion2.setTag(new AnswerState());
-        btnSuggestion3.setTag(new AnswerState());
-        btnSuggestion4.setTag(new AnswerState());
+        btnSuggestion1.setTag(new Answer());
+        btnSuggestion2.setTag(new Answer());
+        btnSuggestion3.setTag(new Answer());
+        btnSuggestion4.setTag(new Answer());
 
         btnSuggestion1.setOnClickListener(onCharacterButtonClickListner);
         btnSuggestion2.setOnClickListener(onCharacterButtonClickListner);
@@ -116,23 +220,23 @@ public class QuestionFragment extends Fragment {
         btnNext = view.findViewById(R.id.btnNext);
         btnNext.setOnClickListener(onNextButtonClickListener);
 
-        Button btnSkip = view.findViewById(R.id.btnSkip);
+        btnSkip = view.findViewById(R.id.btnSkip);
         btnSkip.setOnClickListener(onSkipButtonClickListener);
 
-        Button btnBackSpace = view.findViewById(R.id.btnBackspace);
+        ImageButton btnBackSpace = view.findViewById(R.id.btnBackspace);
         btnBackSpace.setOnClickListener(onBackSpaceButtonClickListener);
 
-        setupQuestion(shuffleString(result.questionString));
+        setupQuestion(shuffleString(scoreData.questionString));
 
     }
 
-    void setupQuestion(char[] jumbledQue) {
+    private void setupQuestion(char[] jumbledQue) {
         btnSuggestion1.setText(String.valueOf(jumbledQue[0]));
         btnSuggestion2.setText(String.valueOf(jumbledQue[1]));
         btnSuggestion3.setText(String.valueOf(jumbledQue[2]));
         btnSuggestion4.setText(String.valueOf(jumbledQue[3]));
 
-        lblQuestionNo.setText(String.valueOf(result.questionNo + 1));
+        lblQuestionNo.setText(String.format(Locale.US, "Word Number - %d", scoreData.questionNo + 1));
 
         startTimer();
     }
@@ -154,99 +258,6 @@ public class QuestionFragment extends Fragment {
         mListener = null;
     }
 
-    private View.OnClickListener onCharacterButtonClickListner = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            AnswerState answerState;
-            switch (v.getId()) {
-                case R.id.btn1:
-                    answerState = (AnswerState) v.getTag();
-                    if (answerState.buttonState == ButtonState.UNSELECTED) {
-                        answerState.buttonState = ButtonState.SELECTED;
-                        answerState.letter = ((Button) v).getText().toString();
-                        answerState.index = ++characterPosition;
-                        v.setTag(answerState);
-                        textViewArrayList.get(characterPosition).setText(answerState.letter);
-                        buttonArrayList.add((Button) v);
-                        lblIndex1.setText(String.valueOf(answerState.index + 1));
-                    }
-
-                    break;
-                case R.id.btn2:
-                    answerState = (AnswerState) v.getTag();
-                    if (answerState.buttonState == ButtonState.UNSELECTED) {
-                        answerState.buttonState = ButtonState.SELECTED;
-                        answerState.letter = ((Button) v).getText().toString();
-                        answerState.index = ++characterPosition;
-                        v.setTag(answerState);
-                        textViewArrayList.get(characterPosition).setText(answerState.letter);
-                        buttonArrayList.add((Button) v);
-                        lblIndex2.setText(String.valueOf(answerState.index + 1));
-                    }
-
-                    break;
-                case R.id.btn3:
-                    answerState = (AnswerState) v.getTag();
-                    if (answerState.buttonState == ButtonState.UNSELECTED) {
-                        answerState.buttonState = ButtonState.SELECTED;
-                        answerState.letter = ((Button) v).getText().toString();
-                        answerState.index = ++characterPosition;
-                        v.setTag(answerState);
-                        textViewArrayList.get(characterPosition).setText(answerState.letter);
-                        buttonArrayList.add((Button) v);
-                        lblIndex3.setText(String.valueOf(answerState.index + 1));
-                    }
-
-                    break;
-                case R.id.btn4:
-                    answerState = (AnswerState) v.getTag();
-                    if (answerState.buttonState == ButtonState.UNSELECTED) {
-                        answerState.buttonState = ButtonState.SELECTED;
-                        answerState.letter = ((Button) v).getText().toString();
-                        answerState.index = ++characterPosition;
-                        v.setTag(answerState);
-                        textViewArrayList.get(characterPosition).setText(answerState.letter);
-                        buttonArrayList.add((Button) v);
-                        lblIndex4.setText(String.valueOf(answerState.index + 1));
-                    }
-                    break;
-            }
-            evaluateResult();
-        }
-    };
-    private View.OnClickListener onBackSpaceButtonClickListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            if (characterPosition != -1) {
-                textViewArrayList.get(characterPosition).setText("");
-                Button btn = buttonArrayList.get(characterPosition);
-                btn.setTag(new AnswerState());
-                buttonArrayList.remove(characterPosition);
-                characterPosition--;
-            }
-        }
-    };
-    private View.OnClickListener onNextButtonClickListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            if (mListener != null) {
-                mListener.onFragmentInteraction(result);
-            }
-        }
-    };
-    private View.OnClickListener onSkipButtonClickListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            if (mListener != null) {
-                if (subscription != null && !subscription.isUnsubscribed()) {
-                    subscription.unsubscribe();
-                }
-                result.resultState = ResultState.SKIPPED;
-                mListener.onFragmentInteraction(result);
-            }
-        }
-    };
-
     private char[] shuffleString(String input) {
         char[] chars = input.toCharArray();
 
@@ -261,16 +272,20 @@ public class QuestionFragment extends Fragment {
         return chars;
     }
 
-    public void setNextQuestion(Result result) {
-        this.result = result;
-        setupQuestion(shuffleString(this.result.questionString));
+    void setNextQuestion(ScoreData scoreData) {
+        this.scoreData = scoreData;
+        setupQuestion(shuffleString(this.scoreData.questionString));
 
         characterPosition = -1;
 
-        btnSuggestion1.setTag(new AnswerState());
-        btnSuggestion2.setTag(new AnswerState());
-        btnSuggestion3.setTag(new AnswerState());
-        btnSuggestion4.setTag(new AnswerState());
+        btnSuggestion1.setTag(new Answer());
+        btnSuggestion2.setTag(new Answer());
+        btnSuggestion3.setTag(new Answer());
+        btnSuggestion4.setTag(new Answer());
+        btnSuggestion1.setBackground(getResources().getDrawable(R.drawable.ic_rounded_rectangle_unselected));
+        btnSuggestion2.setBackground(getResources().getDrawable(R.drawable.ic_rounded_rectangle_unselected));
+        btnSuggestion3.setBackground(getResources().getDrawable(R.drawable.ic_rounded_rectangle_unselected));
+        btnSuggestion4.setBackground(getResources().getDrawable(R.drawable.ic_rounded_rectangle_unselected));
 
         buttonArrayList.clear();
 
@@ -281,10 +296,9 @@ public class QuestionFragment extends Fragment {
         lblIndex2.setText("");
         lblIndex3.setText("");
         lblIndex4.setText("");
-    }
-
-    public interface OnFragmentInteractionListener {
-        void onFragmentInteraction(Result result);
+        viewRight.setVisibility(View.INVISIBLE);
+        viewWrong.setVisibility(View.INVISIBLE);
+        btnSkip.setEnabled(true);
     }
 
     private void startTimer() {
@@ -293,7 +307,7 @@ public class QuestionFragment extends Fragment {
         if (subscription != null && !subscription.isUnsubscribed()) {
             subscription.unsubscribe();
         }
-        lblCountDownTimer.setText("00:00");
+        lblCountDownTimer.setText(getString(R.string.time_minutes));
         Observable<Long> timerObservable = Observable.interval(1, 1, TimeUnit.SECONDS)
                 .take(15)
                 .observeOn(AndroidSchedulers.mainThread())
@@ -313,7 +327,7 @@ public class QuestionFragment extends Fragment {
                 btnNext.setEnabled(true);
                 evaluateResult();
                 if (mListener != null) {
-                    mListener.onFragmentInteraction(result);
+                    mListener.onFragmentInteraction(scoreData);
                 }
             }
 
@@ -329,25 +343,32 @@ public class QuestionFragment extends Fragment {
             subscription.unsubscribe();
         }
         if (characterPosition == 3) {
-            result.time = String.valueOf(lblCountDownTimer.getText());
-            String resultAnswer = "";
+            btnNext.setEnabled(true);
+            scoreData.time = String.valueOf(lblCountDownTimer.getText());
+            StringBuilder resultAnswerBuilder = new StringBuilder();
             for (TextView tx : textViewArrayList) {
-                resultAnswer = resultAnswer + tx.getText();
+                resultAnswerBuilder.append(tx.getText());
             }
-            result.resultString = resultAnswer;
-            if (resultAnswer.equals(result.questionString)) {
-                result.resultState = ResultState.RIGHT;
+            String resultAnswer = resultAnswerBuilder.toString();
+            scoreData.resultString = resultAnswer;
+            if (resultAnswer.equals(scoreData.questionString)) {
+                scoreData.resultState = ResultState.RIGHT;
                 viewRight.setVisibility(View.VISIBLE);
-                viewWrong.setVisibility(View.GONE);
+                viewWrong.setVisibility(View.INVISIBLE);
             } else {
-                result.resultState = ResultState.WRONG;
-                viewRight.setVisibility(View.GONE);
+                scoreData.resultState = ResultState.WRONG;
+                viewRight.setVisibility(View.INVISIBLE);
                 viewWrong.setVisibility(View.VISIBLE);
             }
+            btnSkip.setEnabled(false);
         } else {
-            result.resultState = ResultState.TIMEOUT;
-            viewRight.setVisibility(View.GONE);
-            viewWrong.setVisibility(View.GONE);
+            scoreData.resultState = ResultState.TIMEOUT;
+            viewRight.setVisibility(View.INVISIBLE);
+            viewWrong.setVisibility(View.INVISIBLE);
         }
+    }
+
+    public interface OnFragmentInteractionListener {
+        void onFragmentInteraction(ScoreData scoreData);
     }
 }

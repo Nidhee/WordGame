@@ -5,4 +5,9 @@
     <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="title_activity_home">HomeActivity</string>
     <string name="title_activity_result">ResultActivity</string>
+    <string name="next">Next</string>
+    <string name="skip">Skip</string>
+    <string name="time_minutes">00:00</string>
+    <string name="str_result">Result</string>
+    <string name="str_game">Word Game</string>
 </resources>
