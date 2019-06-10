@@ -56,7 +56,7 @@ public class QuestionFragment extends Fragment {
                     answer = (Answer) button.getTag();
                     if (answer.buttonState == ButtonState.UNSELECTED) {
                         updateAnswer(button, answer);
-                        button.setBackground(getResources().getDrawable(R.drawable.ic_rounded_rectangle_select));
+                        lblIndex1.setText(String.valueOf(answer.index + 1));
                     }
                     break;
                 case R.id.btn2:
