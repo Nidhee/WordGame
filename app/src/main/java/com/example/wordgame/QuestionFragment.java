@@ -11,29 +11,31 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import com.airbnb.lottie.LottieAnimationView;
 import com.example.wordgame.data.Answer;
 import com.example.wordgame.data.ButtonState;
-import com.example.wordgame.data.ScoreData;
 import com.example.wordgame.data.ResultState;
+import com.example.wordgame.data.ScoreData;
 
 import java.util.ArrayList;
 import java.util.Locale;
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
 
-import rx.Observable;
+import javax.inject.Inject;
+
 import rx.Observer;
 import rx.Subscription;
-import rx.android.schedulers.AndroidSchedulers;
-import rx.schedulers.Schedulers;
 
 public class QuestionFragment extends Fragment {
 
+    @Inject
+    QuestionPresenter questionPresenter;
+
+    private int characterPosition;
+    private ArrayList<TextView> textViewArrayList;
+    private ArrayList<Button> buttonArrayList;
+    static final String TAG = "questionFrag";
     private static final String ARG_RESULT = "scoreData";
 
     private TextView lblCountDownTimer, lblanswer1, lblanswer2, lblanswer3, lblanswer4,
@@ -41,71 +43,40 @@ public class QuestionFragment extends Fragment {
 
     private Button btnSuggestion1, btnSuggestion2, btnSuggestion3, btnSuggestion4, btnNext, btnSkip;
     private LottieAnimationView viewRight, viewWrong;
-    private int characterPosition;
-    private ArrayList<TextView> textViewArrayList;
-    private ArrayList<Button> buttonArrayList;
 
+    private Subscription subscription;
     private OnFragmentInteractionListener mListener;
 
-    private ScoreData scoreData;
-    private Subscription subscription;
-    private View.OnClickListener onCharacterButtonClickListner = new View.OnClickListener() {
+    private View.OnClickListener onCharacterButtonClickListener = new View.OnClickListener() {
         @Override
-        public void onClick(View v) {
+        public void onClick(View button) {
             Answer answer;
-            switch (v.getId()) {
+            switch (button.getId()) {
                 case R.id.btn1:
-                    answer = (Answer) v.getTag();
+                    answer = (Answer) button.getTag();
                     if (answer.buttonState == ButtonState.UNSELECTED) {
-                        v.setBackground(getResources().getDrawable(R.drawable.ic_rounded_rectangle_select));
-                        answer.buttonState = ButtonState.SELECTED;
-                        answer.letter = ((Button) v).getText().toString();
-                        answer.index = ++characterPosition;
-                        v.setTag(answer);
-                        textViewArrayList.get(characterPosition).setText(answer.letter);
-                        buttonArrayList.add((Button) v);
-                        lblIndex1.setText(String.valueOf(answer.index + 1));
+                        updateAnswer(button, answer);
+                        button.setBackground(getResources().getDrawable(R.drawable.ic_rounded_rectangle_select));
                     }
-
                     break;
                 case R.id.btn2:
-                    answer = (Answer) v.getTag();
+                    answer = (Answer) button.getTag();
                     if (answer.buttonState == ButtonState.UNSELECTED) {
-                        v.setBackground(getResources().getDrawable(R.drawable.ic_rounded_rectangle_select));
-                        answer.buttonState = ButtonState.SELECTED;
-                        answer.letter = ((Button) v).getText().toString();
-                        answer.index = ++characterPosition;
-                        v.setTag(answer);
-                        textViewArrayList.get(characterPosition).setText(answer.letter);
-                        buttonArrayList.add((Button) v);
+                        updateAnswer(button, answer);
                         lblIndex2.setText(String.valueOf(answer.index + 1));
                     }
-
                     break;
                 case R.id.btn3:
-                    answer = (Answer) v.getTag();
+                    answer = (Answer) button.getTag();
                     if (answer.buttonState == ButtonState.UNSELECTED) {
-                        v.setBackground(getResources().getDrawable(R.drawable.ic_rounded_rectangle_select));
-                        answer.buttonState = ButtonState.SELECTED;
-                        answer.letter = ((Button) v).getText().toString();
-                        answer.index = ++characterPosition;
-                        v.setTag(answer);
-                        textViewArrayList.get(characterPosition).setText(answer.letter);
-                        buttonArrayList.add((Button) v);
+                        updateAnswer(button, answer);
                         lblIndex3.setText(String.valueOf(answer.index + 1));
                     }
-
                     break;
                 case R.id.btn4:
-                    answer = (Answer) v.getTag();
+                    answer = (Answer) button.getTag();
                     if (answer.buttonState == ButtonState.UNSELECTED) {
-                        v.setBackground(getResources().getDrawable(R.drawable.ic_rounded_rectangle_select));
-                        answer.buttonState = ButtonState.SELECTED;
-                        answer.letter = ((Button) v).getText().toString();
-                        answer.index = ++characterPosition;
-                        v.setTag(answer);
-                        textViewArrayList.get(characterPosition).setText(answer.letter);
-                        buttonArrayList.add((Button) v);
+                        updateAnswer(button, answer);
                         lblIndex4.setText(String.valueOf(answer.index + 1));
                     }
                     break;
@@ -113,6 +84,18 @@ public class QuestionFragment extends Fragment {
             evaluateResult();
         }
     };
+
+    // update answer object according to button
+    private void updateAnswer(View button, Answer answer) {
+        button.setBackground(getResources().getDrawable(R.drawable.ic_rounded_rectangle_select));
+        answer.buttonState = ButtonState.SELECTED;
+        answer.letter = ((Button) button).getText().toString();
+        answer.index = ++characterPosition;
+        button.setTag(answer);
+        textViewArrayList.get(characterPosition).setText(answer.letter);
+        buttonArrayList.add((Button) button);
+    }
+
     private View.OnClickListener onBackSpaceButtonClickListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
@@ -130,7 +113,7 @@ public class QuestionFragment extends Fragment {
         @Override
         public void onClick(View v) {
             if (mListener != null) {
-                mListener.onFragmentInteraction(scoreData);
+                mListener.onFragmentInteraction(questionPresenter.getScoreData());
             }
         }
     };
@@ -141,8 +124,8 @@ public class QuestionFragment extends Fragment {
                 if (subscription != null && !subscription.isUnsubscribed()) {
                     subscription.unsubscribe();
                 }
-                scoreData.resultState = ResultState.SKIPPED;
-                mListener.onFragmentInteraction(scoreData);
+                questionPresenter.setResultState(ResultState.SKIPPED);
+                mListener.onFragmentInteraction(questionPresenter.getScoreData());
             }
         }
     };
@@ -161,9 +144,11 @@ public class QuestionFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setRetainInstance(true);
         if (getArguments() != null) {
-            scoreData = getArguments().getParcelable(ARG_RESULT);
+            questionPresenter.setScoreData((ScoreData) getArguments().getParcelable(ARG_RESULT));
         }
+
         characterPosition = -1;
         textViewArrayList = new ArrayList<>();
         buttonArrayList = new ArrayList<>();
@@ -173,13 +158,10 @@ public class QuestionFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        Log.e(TAG, "onCreateView: ");
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_question, container, false);
-    }
+        View view = inflater.inflate(R.layout.fragment_question, container, false);
 
-    @Override
-    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
         lblCountDownTimer = view.findViewById(R.id.lblCountDownTimer);
         viewRight = view.findViewById(R.id.animation_view_right);
         viewWrong = view.findViewById(R.id.animation_view_wrong);
@@ -212,10 +194,10 @@ public class QuestionFragment extends Fragment {
         btnSuggestion3.setTag(new Answer());
         btnSuggestion4.setTag(new Answer());
 
-        btnSuggestion1.setOnClickListener(onCharacterButtonClickListner);
-        btnSuggestion2.setOnClickListener(onCharacterButtonClickListner);
-        btnSuggestion3.setOnClickListener(onCharacterButtonClickListner);
-        btnSuggestion4.setOnClickListener(onCharacterButtonClickListner);
+        btnSuggestion1.setOnClickListener(onCharacterButtonClickListener);
+        btnSuggestion2.setOnClickListener(onCharacterButtonClickListener);
+        btnSuggestion3.setOnClickListener(onCharacterButtonClickListener);
+        btnSuggestion4.setOnClickListener(onCharacterButtonClickListener);
 
         btnNext = view.findViewById(R.id.btnNext);
         btnNext.setOnClickListener(onNextButtonClickListener);
@@ -226,8 +208,9 @@ public class QuestionFragment extends Fragment {
         ImageButton btnBackSpace = view.findViewById(R.id.btnBackspace);
         btnBackSpace.setOnClickListener(onBackSpaceButtonClickListener);
 
-        setupQuestion(shuffleString(scoreData.questionString));
+        setupQuestion(questionPresenter.shuffleString(questionPresenter.getQuestionString()));
 
+        return view;
     }
 
     private void setupQuestion(char[] jumbledQue) {
@@ -236,7 +219,7 @@ public class QuestionFragment extends Fragment {
         btnSuggestion3.setText(String.valueOf(jumbledQue[2]));
         btnSuggestion4.setText(String.valueOf(jumbledQue[3]));
 
-        lblQuestionNo.setText(String.format(Locale.US, "Word Number - %d", scoreData.questionNo + 1));
+        lblQuestionNo.setText(String.format(Locale.US, "Word Number - %d", questionPresenter.getQuestionNo() + 1));
 
         startTimer();
     }
@@ -250,6 +233,7 @@ public class QuestionFragment extends Fragment {
             throw new RuntimeException(context.toString()
                     + " must implement OnFragmentInteractionListener");
         }
+        WordGameApplication.getWordGameComponent().inject(this);
     }
 
     @Override
@@ -258,23 +242,10 @@ public class QuestionFragment extends Fragment {
         mListener = null;
     }
 
-    private char[] shuffleString(String input) {
-        char[] chars = input.toCharArray();
-
-        Random random = new Random();
-        for (int i = chars.length; i > 1; i--) {
-            int randompos = random.nextInt(i - 1);
-            char rand = chars[randompos];
-            char curr = chars[i - 1];
-            chars[i - 1] = rand;
-            chars[randompos] = curr;
-        }
-        return chars;
-    }
 
     void setNextQuestion(ScoreData scoreData) {
-        this.scoreData = scoreData;
-        setupQuestion(shuffleString(this.scoreData.questionString));
+        questionPresenter.setScoreData(scoreData);
+        setupQuestion(questionPresenter.shuffleString(questionPresenter.getQuestionString()));
 
         characterPosition = -1;
 
@@ -308,13 +279,7 @@ public class QuestionFragment extends Fragment {
             subscription.unsubscribe();
         }
         lblCountDownTimer.setText(getString(R.string.time_minutes));
-        Observable<Long> timerObservable = Observable.interval(1, 1, TimeUnit.SECONDS)
-                .take(15)
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribeOn(Schedulers.io());
-
-        subscription = timerObservable.subscribe(new Observer<Long>() {
-
+        subscription = questionPresenter.getTimerObservable().subscribe(new Observer<Long>() {
             @Override
             public void onNext(Long aLong) {
                 Log.d("wordgame", "onNext: ");
@@ -327,7 +292,7 @@ public class QuestionFragment extends Fragment {
                 btnNext.setEnabled(true);
                 evaluateResult();
                 if (mListener != null) {
-                    mListener.onFragmentInteraction(scoreData);
+                    mListener.onFragmentInteraction(questionPresenter.getScoreData());
                 }
             }
 
@@ -344,25 +309,25 @@ public class QuestionFragment extends Fragment {
         }
         if (characterPosition == 3) {
             btnNext.setEnabled(true);
-            scoreData.time = String.valueOf(lblCountDownTimer.getText());
+            questionPresenter.setTime(String.valueOf(lblCountDownTimer.getText()));
             StringBuilder resultAnswerBuilder = new StringBuilder();
             for (TextView tx : textViewArrayList) {
                 resultAnswerBuilder.append(tx.getText());
             }
             String resultAnswer = resultAnswerBuilder.toString();
-            scoreData.resultString = resultAnswer;
-            if (resultAnswer.equals(scoreData.questionString)) {
-                scoreData.resultState = ResultState.RIGHT;
+            questionPresenter.setResultString(resultAnswer);
+            if (resultAnswer.equals(questionPresenter.getQuestionString())) {
+                questionPresenter.setResultState(ResultState.RIGHT);
                 viewRight.setVisibility(View.VISIBLE);
                 viewWrong.setVisibility(View.INVISIBLE);
             } else {
-                scoreData.resultState = ResultState.WRONG;
+                questionPresenter.setResultState(ResultState.WRONG);
                 viewRight.setVisibility(View.INVISIBLE);
                 viewWrong.setVisibility(View.VISIBLE);
             }
             btnSkip.setEnabled(false);
         } else {
-            scoreData.resultState = ResultState.TIMEOUT;
+            questionPresenter.setResultState(ResultState.TIMEOUT);
             viewRight.setVisibility(View.INVISIBLE);
             viewWrong.setVisibility(View.INVISIBLE);
         }
@@ -371,4 +336,6 @@ public class QuestionFragment extends Fragment {
     public interface OnFragmentInteractionListener {
         void onFragmentInteraction(ScoreData scoreData);
     }
+
+
 }

@@ -9,15 +9,21 @@ import com.example.wordgame.data.ScoreData;
 
 import java.util.ArrayList;
 
+import javax.inject.Inject;
+
 public class ResultActivity extends AppCompatActivity {
 
     TextView lblScore,lblDetails;
-    ArrayList<ScoreData> scoreData;
+
+    @Inject
+    ResultPresenter resultPresenter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_result);
+        WordGameApplication.getWordGameComponent().inject(this);
+
         lblScore = findViewById(R.id.lblScore);
         lblDetails = findViewById(R.id.lbldetails);
 
@@ -28,35 +34,18 @@ public class ResultActivity extends AppCompatActivity {
 
         Bundle bundle = getIntent().getExtras();
         if (bundle != null) {
-            scoreData = bundle.getParcelableArrayList("ARG_RESULT");
+            ArrayList<ScoreData> scoreData = bundle.getParcelableArrayList("ARG_RESULT");
+            resultPresenter.setScoreData(scoreData);
         }
-        calculateResult();
+        updateResultViews();
     }
-    private void calculateResult(){
-        int totalScore = 0;
-        int totalSkipped = 0;
-        int totalWrong = 0;
-        int totalTimedOut = 0;
-        for(ScoreData scoreData : this.scoreData){
-            switch(scoreData.resultState){
-                case RIGHT:
-                    totalScore++;
-                    break;
-                case WRONG:
-                    totalWrong++;
-                    break;
-                case SKIPPED:
-                    totalSkipped++;
-                    break;
-                case TIMEOUT:
-                    totalTimedOut++;
-                    break;
-            }
-        }
-        String score = "SCORE - " + totalScore +" / " + scoreData.size();
-        String details = "Skipped - " + totalSkipped + "\n" +
-        "Timed out - " + totalTimedOut + "\n" +
-                "Wrong - " + totalWrong + "\n";
+    private void updateResultViews(){
+
+        resultPresenter.calculateResult();
+        String score = "SCORE - " + resultPresenter.getTotalScore() +" / " + resultPresenter.getTotalQuestion();
+        String details = "Skipped - " + resultPresenter.getTotalSkipped() + "\n" +
+        "Timed out - " + resultPresenter.getTotalTimedOut() + "\n" +
+                "Wrong - " + resultPresenter.getTotalWrong() + "\n";
 
         lblScore.setText(score);
         lblDetails.setText(details);

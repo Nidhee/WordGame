@@ -4,11 +4,11 @@ import android.os.Parcel;
 import android.os.Parcelable;
 
 public class ScoreData implements Parcelable {
-    public int questionNo;
-    public ResultState resultState;
-    public String time;
-    public String questionString;
-    public String resultString;
+    private int questionNo;
+    private ResultState resultState;
+    private String time;
+    private String questionString;
+    private String resultString;
 
     @Override
     public int describeContents() {
@@ -47,5 +47,45 @@ public class ScoreData implements Parcelable {
             return new ScoreData[size];
         }
     };
+
+    public void setQuestionNo(int questionNo) {
+        this.questionNo = questionNo;
+    }
+
+    public void setResultState(ResultState resultState) {
+        this.resultState = resultState;
+    }
+
+    public void setTime(String time) {
+        this.time = time;
+    }
+
+    public void setQuestionString(String questionString) {
+        this.questionString = questionString;
+    }
+
+    public void setResultString(String resultString) {
+        this.resultString = resultString;
+    }
+
+    public int getQuestionNo() {
+        return questionNo;
+    }
+
+    public ResultState getResultState() {
+        return resultState;
+    }
+
+    public String getTime() {
+        return time;
+    }
+
+    public String getQuestionString() {
+        return questionString;
+    }
+
+    public String getResultString() {
+        return resultString;
+    }
 }
 

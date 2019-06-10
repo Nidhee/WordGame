@@ -2,91 +2,79 @@ package com.example.wordgame;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.widget.LinearLayout;
 
-import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentTransaction;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import android.util.Log;
-import android.widget.LinearLayout;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentTransaction;
 
 import com.example.wordgame.data.ScoreData;
 
-import java.util.ArrayList;
+import javax.inject.Inject;
 
 public class HomeActivity extends AppCompatActivity implements QuestionFragment.OnFragmentInteractionListener {
-    ArrayList<String> questionArrayList;
+    @Inject
+    HomePresenter homePresenter;
+
     LinearLayout fragmentContainer;
-    int currentQuestion;
     FragmentManager fragmentManager;
     QuestionFragment questionFragment;
-    ArrayList<ScoreData> scoreDataArrayList;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
-        fragmentContainer = findViewById(R.id.llFragmentContainer);
-        questionArrayList = new ArrayList<>();
-        questionArrayList.add("NINE");
-        questionArrayList.add("BALL");
-        questionArrayList.add("DATE");
-        questionArrayList.add("CORN");
-        questionArrayList.add("KING");
-        questionArrayList.add("COOK");
-        questionArrayList.add("JAVA");
-        questionArrayList.add("TIME");
-        questionArrayList.add("STAR");
-        questionArrayList.add("CITY");
+        WordGameApplication.getWordGameComponent().inject(this);
 
-        fragmentManager = getSupportFragmentManager();
-        currentQuestion = 0;
-        addNewQuestion(questionArrayList.get(currentQuestion), currentQuestion);
-        scoreDataArrayList = new ArrayList<>();
-
+        // set tool bar
         Toolbar mActionBarToolbar = findViewById(R.id.toolbarHome);
         mActionBarToolbar.setTitle(getString(R.string.str_game));
         mActionBarToolbar.setTitleTextColor(getResources().getColor(android.R.color.white));
         setSupportActionBar(mActionBarToolbar);
+
+        fragmentContainer = findViewById(R.id.llFragmentContainer);
+        fragmentManager = getSupportFragmentManager();
+
+        addNewQuestion(homePresenter.getNextQuestion(), homePresenter.getCurrentQuestionNumber());
     }
 
     private void addNewQuestion(String questionString, int questionNo) {
 
-        ScoreData scoreData = new ScoreData();
-        scoreData.questionString = questionString;
-        scoreData.questionNo = questionNo;
-
-        if (fragmentManager.findFragmentByTag("questionFrag") == null) {
+        ScoreData scoreData = homePresenter.getScoreData(questionNo, questionString);
+        if (fragmentManager.findFragmentByTag(QuestionFragment.TAG) == null) {
             questionFragment = QuestionFragment.newInstance(scoreData);
+
             FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-            fragmentTransaction.add(R.id.llFragmentContainer, questionFragment, "questionFrag");
+            fragmentTransaction.add(R.id.llFragmentContainer, questionFragment, QuestionFragment.TAG);
             fragmentTransaction.commit();
 
         } else {
-            questionFragment = (QuestionFragment) fragmentManager.findFragmentByTag("questionFrag");
-            questionFragment.setNextQuestion(scoreData);
+            questionFragment = (QuestionFragment) fragmentManager.findFragmentByTag(QuestionFragment.TAG);
+            if (questionFragment != null && questionFragment.isAdded()) {
+                questionFragment.setNextQuestion(scoreData);
+            }
         }
     }
 
 
     @Override
     public void onFragmentInteraction(ScoreData scoreData) {
-        Log.e("WordGame", "scoreData " + scoreData.resultState
-                + " quesno " + scoreData.questionNo);
-        scoreDataArrayList.add(scoreData);
-        if (currentQuestion < questionArrayList.size() - 1) {
-            currentQuestion++;
-            addNewQuestion(questionArrayList.get(currentQuestion), currentQuestion);
-        } else {
+        // save score data of last question
+        homePresenter.collectScoreData(scoreData);
 
+        // check if has more word, true then show next question else navigate to result string
+        if (homePresenter.hasMoreWord()) {
+            addNewQuestion(homePresenter.getNextQuestion(), homePresenter.getCurrentQuestionNumber());
+        } else {
             // Navigate to scoreData screen
-            Intent intent = new Intent(getApplicationContext(),ResultActivity.class);
+            Intent intent = new Intent(getApplicationContext(), ResultActivity.class);
             Bundle bundle = new Bundle();
-            bundle.putParcelableArrayList("ARG_RESULT", scoreDataArrayList);
+            bundle.putParcelableArrayList("ARG_RESULT", homePresenter.getAllResult());
             intent.putExtras(bundle);
             finish();
             startActivity(intent);
         }
     }
-
 }
